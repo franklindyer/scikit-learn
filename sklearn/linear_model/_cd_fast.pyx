@@ -573,7 +573,9 @@ def enet_coordinate_descent_gram(
     floating tol,
     object rng,
     bint random=0,
-    bint positive=0
+    bint positive=0,
+    floating B=0,               # cost threshold
+    const floating[::1] c=None  # cost constraint vector
 ):
     """Cython version of the coordinate descent algorithm
         for Elastic-Net regression
@@ -626,6 +628,10 @@ def enet_coordinate_descent_gram(
     cdef uint32_t rand_r_state_seed = rng.randint(0, RAND_R_MAX)
     cdef uint32_t* rand_r_state = &rand_r_state_seed
 
+    cdef floating cost
+    cdef floating[:] w_01 = np.zeros(n_features)
+    cdef uint32_t i
+
     cdef floating y_norm2 = np.dot(y, y)
     cdef floating* w_ptr = &w[0]
     cdef const floating* Q_ptr = &Q[0, 0]
@@ -663,7 +669,17 @@ def enet_coordinate_descent_gram(
 
                 tmp = q[ii] - H[ii]
 
-                if positive and tmp < 0:
+                ## FRANKLIN: need to add steps 8-10 of the cost-constrained algo here!
+                cost = 0
+                if c is not None:
+                    i = 0;
+                    ## FRANKLIN: this is horrible, but cython_blas has no optimized sign/abs functions
+                    while i < n_features:
+                        cost += fsign(fabs(w[i])) * c[i]
+                        i += 1
+                    cost += c[ii]
+
+                if (positive and tmp < 0) or (cost > B):
                     w[ii] = 0.0
                 else:
                     w[ii] = fsign(tmp) * fmax(fabs(tmp) - alpha, 0) \

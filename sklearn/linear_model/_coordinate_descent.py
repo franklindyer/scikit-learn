@@ -411,6 +411,8 @@ def enet_path(
     return_n_iter=False,
     positive=False,
     check_input=True,
+    c=None,
+    B=0,
     **params,
 ):
     """Compute elastic net path with coordinate descent.
@@ -692,6 +694,8 @@ def enet_path(
                 rng,
                 random,
                 positive,
+                c=c,
+                B=B
             )
         elif precompute is False:
             model = cd_fast.enet_coordinate_descent(
