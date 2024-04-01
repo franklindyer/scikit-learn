@@ -677,7 +677,8 @@ def enet_coordinate_descent_gram(
                     while i < n_features:
                         cost += fsign(fabs(w[i])) * c[i]
                         i += 1
-                    cost += c[ii]
+                    if w[ii] == 0.0:
+                        cost += c[ii]
 
                 if (positive and tmp < 0) or (cost > B):
                     w[ii] = 0.0
