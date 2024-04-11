@@ -672,10 +672,12 @@ def enet_path(
                 rng=rng,
                 random=random,
                 positive=positive,
+                c=c,
+                B=B
             )
         elif multi_output:
             model = cd_fast.enet_coordinate_descent_multi_task(
-                coef_, l1_reg, l2_reg, X, y, max_iter, tol, rng, random
+                coef_, l1_reg, l2_reg, X, y, max_iter, tol, rng, random, c=c, B=B
             )
         elif isinstance(precompute, np.ndarray):
             # We expect precompute to be already Fortran ordered when bypassing
@@ -699,7 +701,7 @@ def enet_path(
             )
         elif precompute is False:
             model = cd_fast.enet_coordinate_descent(
-                coef_, l1_reg, l2_reg, X, y, max_iter, tol, rng, random, positive
+                coef_, l1_reg, l2_reg, X, y, max_iter, tol, rng, random, positive, c=c, B=B
             )
         else:
             raise ValueError(

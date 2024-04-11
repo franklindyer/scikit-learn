@@ -98,7 +98,9 @@ def enet_coordinate_descent(
     floating tol,
     object rng,
     bint random=0,
-    bint positive=0
+    bint positive=0,
+    floating B=0,               # cost threshold
+    const floating[::1] c=None  # cost constraint vector
 ):
     """Cython version of the coordinate descent algorithm
         for Elastic-Net regression
@@ -154,6 +156,10 @@ def enet_coordinate_descent(
     cdef uint32_t rand_r_state_seed = rng.randint(0, RAND_R_MAX)
     cdef uint32_t* rand_r_state = &rand_r_state_seed
 
+    cdef floating cost
+    cdef floating[:] w_01 = np.zeros(n_features)
+    cdef uint32_t i
+
     if alpha == 0 and beta == 0:
         warnings.warn("Coordinate descent with no regularization may lead to "
                       "unexpected results and is discouraged.")
@@ -188,7 +194,16 @@ def enet_coordinate_descent(
                 # tmp = (X[:,ii]*R).sum()
                 tmp = _dot(n_samples, &X[0, ii], 1, &R[0], 1)
 
-                if positive and tmp < 0:
+                cost = 0
+                if c is not None:
+                    i = 0;
+                    while i < n_features:
+                        cost += fsign(fabs(w[i])) * c[i]
+                        i += 1
+                    if w[ii] == 0.0:
+                        cost += c[ii]
+
+                if (positive and tmp < 0) or (cost > B):
                     w[ii] = 0.0
                 else:
                     w[ii] = (fsign(tmp) * fmax(fabs(tmp) - alpha, 0)
@@ -286,6 +301,8 @@ def sparse_enet_coordinate_descent(
     object rng,
     bint random=0,
     bint positive=0,
+    floating B=0,               # cost threshold
+    const floating[::1] c=None  # cost constraint vector
 ):
     """Cython version of the coordinate descent algorithm for Elastic-Net
 
@@ -370,6 +387,10 @@ def sparse_enet_coordinate_descent(
     cdef bint center = False
     cdef bint no_sample_weights = sample_weight is None
     cdef int kk
+
+    cdef floating cost
+    cdef floating[:] w_01 = np.zeros(n_features)
+    cdef uint32_t i
 
     if no_sample_weights:
         yw = y
@@ -464,7 +485,16 @@ def sparse_enet_coordinate_descent(
                         R_sum += R[jj]
                     tmp -= R_sum * X_mean_ii
 
-                if positive and tmp < 0.0:
+                cost = 0
+                if c is not None:
+                    i = 0;
+                    while i < n_features:
+                        cost += fsign(fabs(w[i])) * c[i]
+                        i += 1
+                    if w[ii] == 0.0:
+                        cost += c[ii]
+
+                if (positive and tmp < 0.0) or (cost > B):
                     w[ii] = 0.0
                 else:
                     w[ii] = fsign(tmp) * fmax(fabs(tmp) - alpha, 0) \
